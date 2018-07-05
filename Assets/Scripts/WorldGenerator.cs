@@ -125,26 +125,34 @@ public class WorldGenerator : MonoBehaviour {
 			}
 		}
 
-		for (int x = 0; x <= xSize; x++) {
-			for (int y = 0; y <= ySize; y++) {
-				int i = y*width+x;
-				if(y==0)
-					continue;
-				int pi = (y-1)*width+x;
-				if(Vector3.SqrMagnitude(vertices[i]-vertices[pi])>clearingDistance)
-					vertices[i]=vertices[pi];
-			}
-		}
+		// for (int x = 0; x <= xSize; x++) {
+		// 	for (int y = 0; y <= ySize; y++) {
+		// 		int i = y*width+x;
+		// 		if(y==0)
+		// 			continue;
+		// 		int pi = (y-1)*width+x;
+		// 		if(Vector3.SqrMagnitude(vertices[i]-vertices[pi])>clearingDistance)
+		// 			vertices[i]=vertices[pi];
+		// 	}
+		// }
 
 		mesh.vertices=vertices;
 		
 		int[] triangles = new int[xSize * ySize * 6];
 		for (int ti = 0, vi = 0, y = 0; y < ySize; y++, vi++) {
 			for (int x = 0; x < xSize; x++, ti += 6, vi++) {
+				Vector3 v1=vertices[vi], v2= vertices[vi+1], v3=vertices[vi+xSize+1], v4=vertices[vi+xSize+2];
+				if(Vector3.SqrMagnitude(v1-v2)>clearingDistance
+					|| Vector3.SqrMagnitude(v2-v3)>clearingDistance
+					||Vector3.SqrMagnitude(v3-v4)>clearingDistance
+					||Vector3.SqrMagnitude(v4-v1)>clearingDistance)
+					continue;
 				triangles[ti] = vi;
-				triangles[ti + 3] = triangles[ti + 2] = vi + 1;
-				triangles[ti + 4] = triangles[ti + 1] = vi + xSize + 1;
+				triangles[ti + 3] = triangles[ti + 2] = vi + xSize + 1;
+				triangles[ti + 4] = triangles[ti + 1] = vi + 1;
 				triangles[ti + 5] = vi + xSize + 2;
+				// if(Vector3.SqrMagnitude(vertices[i]-vertices[pi])>clearingDistance)
+				// 	vertices[i]=vertices[pi];
 			}
 		}
 		mesh.triangles=triangles;
