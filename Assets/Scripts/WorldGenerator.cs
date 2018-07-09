@@ -1,12 +1,16 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class WorldGenerator : MonoBehaviour {
+    public string fileName;
+    public bool isDirectory=false;
 	private MeshFilter meshFilter;
 	private Mesh mesh;
 	private int xSize=-1, ySize=-1;
 	public float clearingDistance=0;
+    private List<GameObject> myCapsules;
 	class LoadData{
 		public float x, y, z;
 		public int laserId, azimuth;
@@ -24,45 +28,56 @@ public class WorldGenerator : MonoBehaviour {
 	TextAsset asset;
 	string[] lines;
 	Vector3[] vertices;
+    bool firstLoad = true;
+
 	// Use this for initialization
 	void Start () {
 		GetComponent<MeshFilter>().mesh = mesh = new Mesh();
 		mesh.name = "Procedural Grid";
-
-		asset = Resources.Load("data") as TextAsset;
-		lines = asset.text.Split('\n');
-		Debug.Log("Total lines : "+lines.Length);
-
-		// Generate();
-		spawnSceene();
-		//parentObj.Rotate(30,0,0,Space.World);
+        myCapsules = new List<GameObject>();
+        StartCoroutine(loadScenes());
 	}
-	private void Generate () {
-		GetComponent<MeshFilter>().mesh = mesh = new Mesh();
-		mesh.name = "Procedural Grid";
-		xSize=10;
-		ySize=10;
-		vertices = new Vector3[(xSize + 1) * (ySize + 1)];
-		for (int i = 0, y = 0; y <= ySize; y++) {
-			for (int x = 0; x <= xSize; x++, i++) {
-				vertices[i] = new Vector3(x, y);
-			}
-		}
-		mesh.vertices = vertices;
 
-		int[] triangles = new int[xSize * ySize * 6];
-		for (int ti = 0, vi = 0, y = 0; y < ySize; y++, vi++) {
-			for (int x = 0; x < xSize; x++, ti += 6, vi++) {
-				triangles[ti] = vi;
-				triangles[ti + 3] = triangles[ti + 2] = vi + 1;
-				triangles[ti + 4] = triangles[ti + 1] = vi + xSize + 1;
-				triangles[ti + 5] = vi + xSize + 2;
-			}
-		}
-		mesh.triangles = triangles;
-		mesh.RecalculateNormals();
-	}
-	private void spawnSceene(){
+    private IEnumerator loadScenes()
+    {
+        if (!isDirectory)
+        {
+            asset = Resources.Load(fileName) as TextAsset;
+            lines = asset.text.Split('\n');
+            Debug.Log("Total lines : " + lines.Length);
+            spawnScene();
+        }
+        else
+        {
+            int i = 1;
+            string actualFile = fileName + " (" + i + ")";
+            asset = Resources.Load(actualFile) as TextAsset;
+            Debug.Log("Loaded : " + actualFile +" : "+(asset!=null));
+            while (asset != null)
+            {
+                Debug.Log("It got in");
+                lines = asset.text.Split('\n');
+                Debug.Log("Total lines : " + lines.Length);
+                spawnScene();
+                i++;
+                actualFile = fileName + " (" + i + ")";
+                asset = Resources.Load(actualFile) as TextAsset;
+                Debug.Log("Loaded : " + actualFile + " : " + (asset != null));
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        
+
+        //loadNextScene();
+    }
+
+
+
+    private void spawnScene(){
 		int totColumns=0;
 		int totRows=0;
 
@@ -100,11 +115,17 @@ public class WorldGenerator : MonoBehaviour {
 		Debug.Log("Total Rows : "+totColumns+" : "+totRows);
 
 		initTheVertices(myList, totColumns, totRows);
-	}
+
+        if(firstLoad)
+            firstLoad = false;
+    }
 	void initTheVertices(List<LoadData> myList, int width, int height){
-		xSize=width-1;
-		ySize=height-1;
-		vertices = new Vector3[(width) * (height)];
+        if (firstLoad)
+        {
+            xSize = width - 1;
+            ySize = height - 1;
+            vertices = new Vector3[(width) * (height)];
+        }
 		foreach(LoadData data in myList){
 			int y = (data.laserId%2==2)?data.laserId/2-1:15+data.laserId/2;
 			int x = data.azimuth;
@@ -125,17 +146,26 @@ public class WorldGenerator : MonoBehaviour {
 			}
 		}
 
-		// for (int x = 0; x <= xSize; x++) {
-		// 	for (int y = 0; y <= ySize; y++) {
-		// 		int i = y*width+x;
-		// 		if(y==0)
-		// 			continue;
-		// 		int pi = (y-1)*width+x;
-		// 		if(Vector3.SqrMagnitude(vertices[i]-vertices[pi])>clearingDistance)
-		// 			vertices[i]=vertices[pi];
-		// 	}
-		// }
+        // for (int x = 0; x <= xSize; x++) {
+        // 	for (int y = 0; y <= ySize; y++) {
+        // 		int i = y*width+x;
+        // 		if(y==0)
+        // 			continue;
+        // 		int pi = (y-1)*width+x;
+        // 		if(Vector3.SqrMagnitude(vertices[i]-vertices[pi])>clearingDistance)
+        // 			vertices[i]=vertices[pi];
+        // 	}
+        // }
 
+        bool b = true;
+        if (b)
+        {
+            drawSpheres();
+            return;
+        }
+
+
+        //This wont be excuted in this branch
 		mesh.vertices=vertices;
 		
 		int[] triangles = new int[xSize * ySize * 6];
@@ -162,21 +192,43 @@ public class WorldGenerator : MonoBehaviour {
 		//StartCoroutine(Generate());
 	}
 
-	// Update is called once per frame
-	void Update () {
-		
-	}
+	
 	private void OnDrawGizmos () {
-		// if(vertices==null){
-		// 	Debug.Log("Vertices null");
-		// 	return;
-		// }
-		// Debug.Log("Its drawing : "+vertices.Length);
-		// Gizmos.color = Color.black;
-		// for (int i = 0; i < vertices.Length; i++) {
-		// 	Gizmos.DrawSphere(vertices[i], 0.1f);
-		// }
-	}
+        //if (vertices == null)
+        //{
+        //    Debug.Log("Vertices null");
+        //    return;
+        //}
+        //Debug.Log("Its drawing : " + vertices.Length);
+        //Gizmos.color = Color.green;
+        //for (int i = 0; i < vertices.Length; i++)
+        //{
+        //    Gizmos.DrawSphere(vertices[i], 0.04f);
+        //}
+    }
+    private void drawSpheres()
+    {
+        if (vertices == null)
+        {
+            Debug.Log("Vertices null");
+            return;
+        }
+        Debug.Log("Its drawing : " + vertices.Length);
+        //Gizmos.color = Color.green;
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            if (firstLoad)
+            {
+                GameObject obj = GameObject.Instantiate(objPrefab, vertices[i], Quaternion.identity, parentObj);
+                myCapsules.Add(obj);
+            }
+            else
+            {
+                if (myCapsules[i] != null)
+                    myCapsules[i].transform.position = vertices[i];
+            }
+        }
+    }
 
 	private void ceateAMesh(){
 
