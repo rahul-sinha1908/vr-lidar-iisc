@@ -13,13 +13,14 @@ public class WorldGenerator : MonoBehaviour {
     private List<GameObject> myCapsules;
 	class LoadData{
 		public float x, y, z;
-		public int laserId, azimuth;
+		public int laserId, azimuth, intensity;
 
-		public LoadData(float x, float y, float z, int laserId, int azimuth){
+		public LoadData(float x, float y, float z, int laserId, int intensity, int azimuth){
 			this.x=x;
 			this.y=y;
 			this.z=z;
 			this.laserId= laserId;
+			this.intensity=intensity;
 			this.azimuth=azimuth;
 		}
 	}
@@ -29,6 +30,7 @@ public class WorldGenerator : MonoBehaviour {
 	string[] lines;
     List<string[]> linesArray;
 	Vector3[] vertices;
+	Color[] colors;
     bool firstLoad = true;
 
 	// Use this for initialization
@@ -93,8 +95,8 @@ public class WorldGenerator : MonoBehaviour {
 		int totRows=0;
 
 		float x, y, z;
-		float  temp1, temp2;
-		int  laserId, azimuth;
+		float  temp1, temp2, temp3;
+		int  laserId, azimuth, intensity;
 		int previousLID=100;
 
 		List<LoadData> myList=new List<LoadData>();
@@ -105,11 +107,13 @@ public class WorldGenerator : MonoBehaviour {
 				if(!float.TryParse(xyz[0], out x))continue;
 				if(!float.TryParse(xyz[1], out y))continue;
 				if(!float.TryParse(xyz[2], out z))continue;
+				if(!float.TryParse(xyz[6], out temp3))continue;
 				if(!float.TryParse(xyz[7], out temp1))continue;
 				if(!float.TryParse(xyz[8], out temp2))continue;
 
 				laserId=Mathf.RoundToInt(temp1);
 				azimuth=Mathf.RoundToInt(temp2);
+				intensity=Mathf.RoundToInt(temp3);
 
 				if(previousLID>laserId)
 					totColumns++;
@@ -118,7 +122,7 @@ public class WorldGenerator : MonoBehaviour {
 				
 				previousLID=laserId;
 				// laser - 7, verticalangle - 12
-				myList.Add(new LoadData(x,y,z,laserId,totColumns-1));
+				myList.Add(new LoadData(x,y,z,laserId, intensity,totColumns-1));
 				// GameObject obj = GameObject.Instantiate(objPrefab,new Vector3(x,y,z), Quaternion.identity, parentObj);
 				// obj.name="Cube : "+laserId+" - "+azimuth;
 			}
@@ -139,8 +143,8 @@ public class WorldGenerator : MonoBehaviour {
 		int totRows=0;
 
 		float x, y, z;
-		float  temp1, temp2;
-		int  laserId, azimuth;
+		float  temp1, temp2, temp3;
+		int  laserId, azimuth, intensity;
 		int previousLID=100;
 
 		List<LoadData> myList=new List<LoadData>();
@@ -151,11 +155,13 @@ public class WorldGenerator : MonoBehaviour {
 				if(!float.TryParse(xyz[0], out x))continue;
 				if(!float.TryParse(xyz[1], out y))continue;
 				if(!float.TryParse(xyz[2], out z))continue;
+				if(!float.TryParse(xyz[6], out temp3))continue;
 				if(!float.TryParse(xyz[7], out temp1))continue;
 				if(!float.TryParse(xyz[8], out temp2))continue;
 
 				laserId=Mathf.RoundToInt(temp1);
 				azimuth=Mathf.RoundToInt(temp2);
+				intensity=Mathf.RoundToInt(temp3);
 
 				if(previousLID>laserId)
 					totColumns++;
@@ -164,7 +170,7 @@ public class WorldGenerator : MonoBehaviour {
 				
 				previousLID=laserId;
 				// laser - 7, verticalangle - 12
-				myList.Add(new LoadData(x,y,z,laserId,totColumns-1));
+				myList.Add(new LoadData(x,y,z,laserId, intensity, totColumns-1));
 				// GameObject obj = GameObject.Instantiate(objPrefab,new Vector3(x,y,z), Quaternion.identity, parentObj);
 				// obj.name="Cube : "+laserId+" - "+azimuth;
 			}
@@ -182,14 +188,24 @@ public class WorldGenerator : MonoBehaviour {
             xSize = width - 1;
             ySize = height - 1;
             vertices = new Vector3[(width) * (height)];
+			colors = new Color[(width) * (height)];
         }
+		float maxIntensity=0;
+		foreach(LoadData data in myList){
+			int intense = data.intensity;
+			maxIntensity+=intense;
+		}
+		maxIntensity=maxIntensity/myList.Count;
+		
 		foreach(LoadData data in myList){
 			int y = (data.laserId%2==2)?data.laserId/2-1:15+data.laserId/2;
 			int x = data.azimuth;
 			int index=y*width+x;
 			//Debug.Log("Index : "+)
-			if(index<vertices.Length)
+			if(index<vertices.Length){
 				vertices[index]=new Vector3(data.x, data.y, data.z);
+				colors[index]=Color.Lerp(Color.green, Color.red, data.intensity*1.0f/maxIntensity);
+			}
 		}
 
 		for (int i = 0; i < vertices.Length; i++)
@@ -277,12 +293,15 @@ public class WorldGenerator : MonoBehaviour {
             if (firstLoad)
             {
                 GameObject obj = GameObject.Instantiate(objPrefab, vertices[i], Quaternion.identity, parentObj);
+				obj.GetComponent<MeshRenderer>().material.SetColor("_Color", colors[i]);
                 myCapsules.Add(obj);
             }
             else
             {
-                if (myCapsules[i] != null)
+                if (myCapsules[i] != null){
                     myCapsules[i].transform.position = vertices[i];
+					myCapsules[i].GetComponent<MeshRenderer>().material.SetColor("_Color", colors[i]);
+				}
             }
         }
     }
