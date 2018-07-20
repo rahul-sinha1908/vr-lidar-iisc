@@ -8,6 +8,7 @@ public class WorldGenerator : MonoBehaviour {
     public bool isDirectory=false;
 	private MeshFilter meshFilter;
 	private Mesh mesh;
+	public int totalRenderVertex=-1;
 	private int xSize=-1, ySize=-1;
 	public float clearingDistance=0;
     private List<GameObject> myCapsules;
@@ -37,6 +38,7 @@ public class WorldGenerator : MonoBehaviour {
 	void Start () {
 		GetComponent<MeshFilter>().mesh = mesh = new Mesh();
 		mesh.name = "Procedural Grid";
+		meshFilter=GetComponent<MeshFilter>();
         myCapsules = new List<GameObject>();
 
         linesArray=new List<string[]>();
@@ -44,6 +46,97 @@ public class WorldGenerator : MonoBehaviour {
         StartCoroutine(loadScenes());
 	}
 
+	public void BasicMerge()
+	{
+		// All our children (and us)
+		MeshFilter[] filters = GetComponentsInChildren<MeshFilter> (false);
+
+		Mesh finalMesh=new Mesh();
+		finalMesh.name="Bundle of Objects";
+
+		CombineInstance[] combiners=new CombineInstance[filters.Length];
+		for(int i=0;i<filters.Length;i++){
+			if(filters[i].transform == transform)
+				continue;
+			combiners[i].subMeshIndex=0;
+			combiners[i].mesh=filters[i].mesh;
+			combiners[i].transform=filters[i].transform.localToWorldMatrix;
+		}
+		finalMesh.CombineMeshes(combiners);
+		meshFilter.mesh=finalMesh;
+	}
+
+	public void AdvancedMerge()
+	{
+		// All our children (and us)
+		MeshFilter[] filters = GetComponentsInChildren<MeshFilter> (false);
+
+		// All the meshes in our children (just a big list)
+		List<Material> materials = new List<Material>();
+		MeshRenderer[] renderers = GetComponentsInChildren<MeshRenderer> (false); // <-- you can optimize this
+		foreach (MeshRenderer renderer in renderers)
+		{
+		if (renderer.transform == transform)
+			continue;
+		Material[] localMats = renderer.sharedMaterials;
+		foreach (Material localMat in localMats)
+			if (!materials.Contains (localMat))
+			materials.Add (localMat);
+		}
+
+		// Each material will have a mesh for it.
+		List<Mesh> submeshes = new List<Mesh>();
+		foreach (Material material in materials)
+		{
+			// Make a combiner for each (sub)mesh that is mapped to the right material.
+			List<CombineInstance> combiners = new List<CombineInstance> ();
+			foreach (MeshFilter filter in filters)
+			{
+				if (filter.transform == transform) continue;
+				// The filter doesn't know what materials are involved, get the renderer.
+				MeshRenderer renderer = filter.GetComponent<MeshRenderer> ();  // <-- (Easy optimization is possible here, give it a try!)
+				if (renderer == null)
+				{
+				Debug.LogError (filter.name + " has no MeshRenderer");
+				continue;
+				}
+
+				// Let's see if their materials are the one we want right now.
+				Material[] localMaterials = renderer.sharedMaterials;
+				for (int materialIndex = 0; materialIndex < localMaterials.Length; materialIndex++)
+				{
+				if (localMaterials [materialIndex] != material)
+				continue;
+				// This submesh is the material we're looking for right now.
+				CombineInstance ci = new CombineInstance();
+				ci.mesh = filter.sharedMesh;
+				ci.subMeshIndex = materialIndex;
+				ci.transform = Matrix4x4.identity;
+				combiners.Add (ci);
+				}
+			}
+			// Flatten into a single mesh.
+			Mesh mesh = new Mesh ();
+			mesh.CombineMeshes (combiners.ToArray(), true);
+			submeshes.Add (mesh);
+		}
+
+		// The final mesh: combine all the material-specific meshes as independent submeshes.
+		List<CombineInstance> finalCombiners = new List<CombineInstance> ();
+		foreach (Mesh mesh in submeshes)
+		{
+			CombineInstance ci = new CombineInstance ();
+			ci.mesh = mesh;
+			ci.subMeshIndex = 0;
+			ci.transform = Matrix4x4.identity;
+			finalCombiners.Add (ci);
+		}
+		Mesh finalMesh = new Mesh();
+		finalMesh.name="Bunch Of Objects";
+		finalMesh.CombineMeshes (finalCombiners.ToArray(), false);
+		//meshFilter.sharedMesh = finalMesh;
+		Debug.Log ("Final mesh has " + submeshes.Count + " materials.");
+	}
     private IEnumerator loadScenes()
     {
         if (!isDirectory)
@@ -51,7 +144,16 @@ public class WorldGenerator : MonoBehaviour {
             asset = Resources.Load(fileName) as TextAsset;
             lines = asset.text.Split('\n');
             Debug.Log("Total lines : " + lines.Length);
-            spawnScene();
+            spawnScene(totalRenderVertex);
+
+			Debug.Log("Its merging Now");
+			//AdvancedMerge();
+			//BasicMerge();
+			Debug.Log("Its merged Now");
+			// foreach(Transform children in transform)
+			// 	Destroy(children.gameObject);
+			Debug.Log("All children deleted");
+
         }
         else
         {
@@ -131,14 +233,15 @@ public class WorldGenerator : MonoBehaviour {
 
 		initTheVertices(myList, totColumns, totRows);
 
-        if(firstLoad)
+        if(firstLoad){
             firstLoad = false;
-        
+		}
+
         return true;
     }
 
 
-    private void spawnScene(){
+    private void spawnScene(int totalVertices=-1){
 		int totColumns=0;
 		int totRows=0;
 
@@ -148,6 +251,7 @@ public class WorldGenerator : MonoBehaviour {
 		int previousLID=100;
 
 		List<LoadData> myList=new List<LoadData>();
+		int i=0;
 		foreach(string line in lines){
 			string[] xyz=line.Split(',');
 			if(xyz.Length>=3){
@@ -174,13 +278,18 @@ public class WorldGenerator : MonoBehaviour {
 				// GameObject obj = GameObject.Instantiate(objPrefab,new Vector3(x,y,z), Quaternion.identity, parentObj);
 				// obj.name="Cube : "+laserId+" - "+azimuth;
 			}
+			if(totalVertices!=-1){
+				if(i++>totalVertices)
+					break;
+			}
 		}
 		Debug.Log("Total Rows : "+totColumns+" : "+totRows);
 
 		initTheVertices(myList, totColumns, totRows);
 
-        if(firstLoad)
+        if(firstLoad){			
             firstLoad = false;
+		}
     }
 	void initTheVertices(List<LoadData> myList, int width, int height){
         if (firstLoad)
