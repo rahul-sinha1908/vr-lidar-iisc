@@ -21,6 +21,7 @@ public class WorldGenerator : MonoBehaviour {
 	}
 	public GameObject objPrefab;
 	public Transform parentObj;
+	public bool isDrawCubes;
 	TextAsset asset;
 	string[] lines;
 	Vector3[] vertices;
@@ -29,38 +30,13 @@ public class WorldGenerator : MonoBehaviour {
 		GetComponent<MeshFilter>().mesh = mesh = new Mesh();
 		mesh.name = "Procedural Grid";
 
-		asset = Resources.Load("data") as TextAsset;
+		asset = Resources.Load("data1") as TextAsset;
 		lines = asset.text.Split('\n');
 		Debug.Log("Total lines : "+lines.Length);
 
 		// Generate();
 		spawnSceene();
 		//parentObj.Rotate(30,0,0,Space.World);
-	}
-	private void Generate () {
-		GetComponent<MeshFilter>().mesh = mesh = new Mesh();
-		mesh.name = "Procedural Grid";
-		xSize=10;
-		ySize=10;
-		vertices = new Vector3[(xSize + 1) * (ySize + 1)];
-		for (int i = 0, y = 0; y <= ySize; y++) {
-			for (int x = 0; x <= xSize; x++, i++) {
-				vertices[i] = new Vector3(x, y);
-			}
-		}
-		mesh.vertices = vertices;
-
-		int[] triangles = new int[xSize * ySize * 6];
-		for (int ti = 0, vi = 0, y = 0; y < ySize; y++, vi++) {
-			for (int x = 0; x < xSize; x++, ti += 6, vi++) {
-				triangles[ti] = vi;
-				triangles[ti + 3] = triangles[ti + 2] = vi + 1;
-				triangles[ti + 4] = triangles[ti + 1] = vi + xSize + 1;
-				triangles[ti + 5] = vi + xSize + 2;
-			}
-		}
-		mesh.triangles = triangles;
-		mesh.RecalculateNormals();
 	}
 	private void spawnSceene(){
 		int totColumns=0;
@@ -106,8 +82,8 @@ public class WorldGenerator : MonoBehaviour {
 		ySize=height-1;
 		vertices = new Vector3[(width) * (height)];
 		foreach(LoadData data in myList){
-			//int y = (data.laserId%2==2)?data.laserId/2-1:15+data.laserId/2;
-			int y = data.laserId;
+			int y = (data.laserId%2==2)?data.laserId/2-1:15+data.laserId/2;
+			// int y = data.laserId;
 			int x = data.azimuth;
 			int index=y*width+x;
 			//Debug.Log("Index : "+)
@@ -136,7 +112,8 @@ public class WorldGenerator : MonoBehaviour {
 		// 			vertices[i]=vertices[pi];
 		// 	}
 		// }
-
+		if(isDrawCubes)
+			drawCubes();
 		mesh.vertices=vertices;
 		
 		int[] triangles = new int[xSize * ySize * 6];
@@ -158,11 +135,21 @@ public class WorldGenerator : MonoBehaviour {
 		}
 		mesh.triangles=triangles;
 		mesh.RecalculateNormals();
-
+		
 		Debug.Log("Done Drawing"+vertices.Length);
 		//StartCoroutine(Generate());
 	}
 
+	private void drawCubes(){
+		if(vertices==null){
+			Debug.Log("Vertices null");
+			return;
+		}
+		Debug.Log("Its drawing : "+vertices.Length);
+		for (int i = 0; i < vertices.Length; i++) {
+			GameObject.Instantiate(objPrefab, vertices[i], Quaternion.identity, transform);
+		}
+	}
 	// Update is called once per frame
 	void Update () {
 		
@@ -175,7 +162,8 @@ public class WorldGenerator : MonoBehaviour {
 		// Debug.Log("Its drawing : "+vertices.Length);
 		// Gizmos.color = Color.black;
 		// for (int i = 0; i < vertices.Length; i++) {
-		// 	Gizmos.DrawSphere(vertices[i], 0.1f);
+		// 	//Gizmos.DrawSphere(vertices[i], 0.1f);
+		// 	Gizmos.DrawCube(vertices[i], new Vector3(1,1,1)*0.05f);
 		// }
 	}
 
