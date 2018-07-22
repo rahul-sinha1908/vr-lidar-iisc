@@ -196,7 +196,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6b962d58af094a9caf9d7245993b9ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clearingDistance: 2
+  clearingDistance: 10
   objPrefab: {fileID: 1351026029173744, guid: db59849fd4d904586b34515b36b68c55, type: 2}
   parentObj: {fileID: 1179052096}
 --- !u!1 &384234465

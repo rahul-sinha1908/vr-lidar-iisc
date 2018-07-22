@@ -106,7 +106,8 @@ public class WorldGenerator : MonoBehaviour {
 		ySize=height-1;
 		vertices = new Vector3[(width) * (height)];
 		foreach(LoadData data in myList){
-			int y = (data.laserId%2==2)?data.laserId/2-1:15+data.laserId/2;
+			//int y = (data.laserId%2==2)?data.laserId/2-1:15+data.laserId/2;
+			int y = data.laserId;
 			int x = data.azimuth;
 			int index=y*width+x;
 			//Debug.Log("Index : "+)
