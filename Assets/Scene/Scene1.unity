@@ -137,7 +137,7 @@ MeshRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 301192985}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -197,6 +197,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clearingDistance: 50
+  scale: 0.08
   objPrefab: {fileID: 1351026029173744, guid: db59849fd4d904586b34515b36b68c55, type: 2}
   parentObj: {fileID: 301192989}
   isDrawCubes: 0

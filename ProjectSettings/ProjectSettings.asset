@@ -718,7 +718,7 @@ PlayerSettings:
   facebookSdkVersion: 7.9.4
   apiCompatibilityLevel: 2
   cloudProjectId: 00b6c06a-4589-432d-b6c9-4c9191db6961
-  projectName: 
+  projectName: VeloLiDAR
   organizationId: rahulgameon
   cloudEnabled: 0
   enableNativePlatformBackendsForNewInputSystem: 0
