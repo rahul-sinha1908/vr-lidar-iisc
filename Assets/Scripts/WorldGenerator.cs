@@ -7,6 +7,7 @@ public class WorldGenerator : MonoBehaviour {
 	private Mesh mesh;
 	private int xSize=-1, ySize=-1;
 	public float clearingDistance=0;
+	private bool[] flag;
 	class LoadData{
 		public float x, y, z;
 		public int laserId, azimuth;
@@ -69,8 +70,6 @@ public class WorldGenerator : MonoBehaviour {
 				previousLID=laserId;
 				// laser - 7, verticalangle - 12
 				myList.Add(new LoadData(x,y,z,laserId,totColumns-1));
-				// GameObject obj = GameObject.Instantiate(objPrefab,new Vector3(x,y,z), Quaternion.identity, parentObj);
-				// obj.name="Cube : "+laserId+" - "+azimuth;
 			}
 		}
 		Debug.Log("Total Rows : "+totColumns+" : "+totRows);
@@ -81,14 +80,24 @@ public class WorldGenerator : MonoBehaviour {
 		xSize=width-1;
 		ySize=height-1;
 		vertices = new Vector3[(width) * (height)];
+		flag = new bool[(width) * (height)];
+		for(int i=0;i<flag.Length;i++)
+			flag[i]=false;
 		foreach(LoadData data in myList){
-			int y = (data.laserId%2==2)?data.laserId/2-1:15+data.laserId/2;
+			int y = (data.laserId%2==0)?data.laserId/2-1:15+data.laserId/2;
 			// int y = data.laserId;
 			int x = data.azimuth;
 			int index=y*width+x;
 			//Debug.Log("Index : "+)
-			if(index<vertices.Length)
+			if(index>=0 && index<vertices.Length){
+				//Debug.Log("Index : "+)
+				flag[index]=true;
 				vertices[index]=new Vector3(data.x, data.y, data.z);
+				if(isDrawCubes){
+					GameObject obj = GameObject.Instantiate(objPrefab,new Vector3(data.x,data.y,data.z), Quaternion.identity, parentObj);
+					obj.name="Cube ("+index+"): "+data.laserId+"-"+y+" - "+x;
+				}
+			}
 		}
 
 		for (int i = 0; i < vertices.Length; i++)
@@ -112,8 +121,10 @@ public class WorldGenerator : MonoBehaviour {
 		// 			vertices[i]=vertices[pi];
 		// 	}
 		// }
-		if(isDrawCubes)
-			drawCubes();
+
+
+		// if(isDrawCubes)
+		// 	drawCubes();
 		mesh.vertices=vertices;
 		
 		int[] triangles = new int[xSize * ySize * 6];
@@ -122,8 +133,10 @@ public class WorldGenerator : MonoBehaviour {
 				Vector3 v1=vertices[vi], v2= vertices[vi+1], v3=vertices[vi+xSize+1], v4=vertices[vi+xSize+2];
 				if(Vector3.SqrMagnitude(v1-v2)>clearingDistance
 					|| Vector3.SqrMagnitude(v2-v3)>clearingDistance
-					||Vector3.SqrMagnitude(v3-v4)>clearingDistance
-					||Vector3.SqrMagnitude(v4-v1)>clearingDistance)
+					|| Vector3.SqrMagnitude(v3-v4)>clearingDistance
+					|| Vector3.SqrMagnitude(v4-v1)>clearingDistance)
+					continue;
+				if(!flag[vi] || !flag[vi+xSize+1] || !flag[vi+1] || !flag[vi+xSize+2])
 					continue;
 				triangles[ti] = vi;
 				triangles[ti + 3] = triangles[ti + 2] = vi + xSize + 1;
